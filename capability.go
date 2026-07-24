@@ -75,7 +75,10 @@ func (c *Capability) Manifest() v1.Manifest {
 	return v1.Manifest{
 		ID:       CapabilityID,
 		Version:  moduleVersion,
-		Name:     "Cinemeta metadata",
+		Name: "Cinemeta metadata",
+		Description: "Mosaic's zero-configuration metadata floor: titles, descriptions and artwork " +
+			"from Cinemeta, with no key to obtain and nothing to configure. It is what makes a fresh " +
+			"install work before you have set anything up.",
 		Provides: []v1.Role{v1.RoleMetadata, v1.RoleSearch, v1.RoleCatalog},
 	}
 }
