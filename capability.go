@@ -73,9 +73,9 @@ func New(httpClient *http.Client) *Capability {
 // no settings UI, because there is nothing to set.
 func (c *Capability) Manifest() v1.Manifest {
 	return v1.Manifest{
-		ID:       CapabilityID,
-		Version:  moduleVersion,
-		Name: "Cinemeta metadata",
+		ID:      CapabilityID,
+		Version: moduleVersion,
+		Name:    "Cinemeta metadata",
 		Description: "Mosaic's zero-configuration metadata floor: titles, descriptions and artwork " +
 			"from Cinemeta, with no key to obtain and nothing to configure. It is what makes a fresh " +
 			"install work before you have set anything up.",
