@@ -21,8 +21,10 @@ import (
 //
 // It speaks the Stremio addon protocol, because that is what Cinemeta serves,
 // but it is **not** a client of that protocol: it talks to one known service
-// whose resources and catalogs are fixed. There is no manifest to fetch, no
-// resource to negotiate, no addon list to order. That is the whole difference
+// whose resources and catalogs are fixed. There is no resource to negotiate and
+// no addon list to order, and the one manifest read — the genre options a
+// catalog declares its filter from, in facets.go — decides no catalog's
+// existence, only the values of one control. That is the whole difference
 // between a module that guarantees metadata and one that sources it from
 // whatever a user configured (ADR 0062), and it is why the general Stremio
 // addon client is a separate module rather than this one with more options.
@@ -194,17 +196,43 @@ func (c *Client) Catalogs() []CatalogDecl {
 	}
 }
 
+// catalogPage is how many entries one Cinemeta catalog page holds. It is fixed
+// by the service and it is the only basis this module has for saying whether
+// there is another page — see the return value below.
+const catalogPage = 100
+
 // CatalogItems lists one catalog's entries. skip is an item offset, which is
 // what Cinemeta's own paging parameter means, so it passes through untranslated.
-func (c *Client) CatalogItems(ctx context.Context, catalogID, nativeType string, skip int) ([]Preview, error) {
+// genre narrows the listing when non-empty, as the addon protocol's `genre`
+// extra; the caller has already checked it against what the catalog declared.
+//
+// It reports whether another page exists, and this is the **weaker** of the two
+// statements the SDK describes: Cinemeta returns no total, so a full page is all
+// there is to go on. Only the provider can make even that claim, because only
+// the provider knows the page size — and its cost is bounded and visible, a
+// final page of exactly a hundred asking for one more that comes back empty.
+// The alternative is what was here before: paging built, and dead, because
+// nothing ever said there was more.
+func (c *Client) CatalogItems(ctx context.Context, catalogID, nativeType, genre string, skip int) ([]Preview, bool, error) {
 	decl, ok := c.findCatalog(catalogID, nativeType)
 	if !ok {
-		return nil, fmt.Errorf("unknown catalog %q for type %q", catalogID, nativeType)
+		return nil, false, fmt.Errorf("unknown catalog %q for type %q", catalogID, nativeType)
 	}
 
 	endpoint := c.base + "/catalog/" + decl.Type + "/" + decl.ID
+	// The protocol spells extras as path segments, `name=value` joined by `&`,
+	// before the `.json`. Each value is path-escaped: a genre is somebody else's
+	// vocabulary and "Sci-Fi & Fantasy" is a real one, which unescaped would
+	// read as a second extra.
+	var extras []string
+	if genre != "" {
+		extras = append(extras, filterGenre+"="+url.PathEscape(genre))
+	}
 	if skip > 0 {
-		endpoint += "/skip=" + strconv.Itoa(skip)
+		extras = append(extras, "skip="+strconv.Itoa(skip))
+	}
+	if len(extras) > 0 {
+		endpoint += "/" + strings.Join(extras, "&")
 	}
 	endpoint += ".json"
 
@@ -212,7 +240,7 @@ func (c *Client) CatalogItems(ctx context.Context, catalogID, nativeType string,
 		Metas []rawPreview `json:"metas"`
 	}
 	if err := c.getJSON(ctx, endpoint, &resp); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	out := make([]Preview, 0, len(resp.Metas))
@@ -222,7 +250,7 @@ func (c *Client) CatalogItems(ctx context.Context, catalogID, nativeType string,
 		// special case.
 		out = append(out, m.preview(decl.Type))
 	}
-	return out, nil
+	return out, len(resp.Metas) >= catalogPage, nil
 }
 
 // findCatalog resolves a catalog by id and type. Two catalogs share an id

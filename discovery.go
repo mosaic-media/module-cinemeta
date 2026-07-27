@@ -44,7 +44,10 @@ func (c *Capability) Catalogs(ctx context.Context, req v1.CatalogsRequest) (v1.C
 	decls := c.client.Catalogs()
 	catalogs := make([]v1.Catalog, 0, len(decls))
 	for _, d := range decls {
-		catalogs = append(catalogs, v1.Catalog{ID: d.ID, NativeType: d.Type, Name: d.Name})
+		catalogs = append(catalogs, v1.Catalog{
+			ID: d.ID, NativeType: d.Type, Name: d.Name,
+			Filters: c.facets.filtersFor(ctx, c.client, d.Type, d.ID),
+		})
 	}
 	return v1.CatalogsResponse{Catalogs: catalogs}, nil
 }
@@ -54,7 +57,17 @@ func (c *Capability) Catalogs(ctx context.Context, req v1.CatalogsRequest) (v1.C
 // library with everything the source knows about, and Cinemeta knows about
 // everything.
 func (c *Capability) CatalogItems(ctx context.Context, req v1.CatalogItemsRequest) (v1.CatalogItemsResponse, error) {
-	previews, err := c.client.CatalogItems(ctx, req.CatalogID, req.NativeType, req.Skip)
+	// The selection is checked against the same declaration Catalogs handed out.
+	// A filter this module cannot honour is **refused rather than dropped**: the
+	// addon protocol answers an unknown genre with the unfiltered listing, so
+	// passing one through would return a plausible page for a question nobody
+	// asked — and unlike a missing control, a user cannot see that.
+	genre, err := c.narrowingFor(ctx, req)
+	if err != nil {
+		return v1.CatalogItemsResponse{}, err
+	}
+
+	previews, hasMore, err := c.client.CatalogItems(ctx, req.CatalogID, req.NativeType, genre, req.Skip)
 	if err != nil {
 		return v1.CatalogItemsResponse{}, fmt.Errorf("list Cinemeta catalog items: %w", err)
 	}
@@ -65,5 +78,34 @@ func (c *Capability) CatalogItems(ctx context.Context, req v1.CatalogItemsReques
 			Ref: refFrom(p), Title: p.Title, Year: p.Year, Poster: p.Poster,
 		})
 	}
-	return v1.CatalogItemsResponse{Items: items}, nil
+	return v1.CatalogItemsResponse{Items: items, HasMore: hasMore}, nil
+}
+
+// narrowingFor validates the caller's selected filters and returns the genre to
+// ask for, empty when none was selected.
+func (c *Capability) narrowingFor(ctx context.Context, req v1.CatalogItemsRequest) (string, error) {
+	if len(req.Filters) == 0 {
+		return "", nil
+	}
+	options := c.facets.genresFor(ctx, c.client, req.NativeType, req.CatalogID)
+	genre := ""
+	for name, value := range req.Filters {
+		if name != filterGenre {
+			return "", fmt.Errorf("catalog %q has no filter named %q", req.CatalogID, name)
+		}
+		if !hasOption(options, value) {
+			return "", fmt.Errorf("catalog %q offers no genre %q", req.CatalogID, value)
+		}
+		genre = value
+	}
+	return genre, nil
+}
+
+func hasOption(options []v1.CatalogFilterOption, value string) bool {
+	for _, o := range options {
+		if o.Value == value {
+			return true
+		}
+	}
+	return false
 }

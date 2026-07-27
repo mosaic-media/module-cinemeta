@@ -573,6 +573,27 @@ func fakeCinemeta(modes ...serverMode) *httptest.Server {
 		path := r.URL.Path
 		log.add(path)
 		switch {
+		// The manifest, read for one thing only: the genre options a catalog
+		// declares its filter from. The live document also declares "New"
+		// catalogs whose `genre` extra carries a *year* and is required — the
+		// reason those catalogs are not exposed at all, and the reason a source's
+		// parameter name is never shown to a user.
+		case path == "/manifest.json":
+			writeJSON(w, map[string]any{"catalogs": []map[string]any{
+				{"type": "movie", "id": "top", "extra": []map[string]any{
+					{"name": "genre", "options": []string{"Action", "Sci-Fi", ""}},
+					{"name": "search"},
+				}},
+				{"type": "series", "id": "top", "extra": []map[string]any{
+					{"name": "genre", "options": []string{"Crime", "Drama"}},
+				}},
+				{"type": "movie", "id": "year", "extra": []map[string]any{
+					{"name": "genre", "isRequired": true, "options": []string{"2026", "2025"}},
+				}},
+				// imdbRating carries no genre extra, so it must declare no filter
+				// rather than inherit the neighbouring catalog's.
+				{"type": "movie", "id": "imdbRating"},
+			}})
 		case path == "/meta/movie/tt0133093.json":
 			writeJSON(w, map[string]any{"meta": movieMeta})
 		case path == "/meta/series/tt0903747.json":
@@ -653,7 +674,7 @@ func (f *fakeContent) AddContentWork(_ context.Context, cmd v1.AddContentWorkCom
 	n := v1.Node{
 		ID: id, WorkID: id, Kind: v1.NodeWork,
 		MediaType: cmd.MediaType, Title: cmd.Title, Status: v1.NodeActive,
-		ExternalIDs: cmd.ExternalIDs, Artwork: cmd.Artwork,
+		ExternalIDs: cmd.ExternalIDs, Artwork: cmd.Artwork, Genres: cmd.Genres,
 	}
 	f.put(n)
 	return v1.AddContentWorkResult{Work: n}, nil
@@ -749,3 +770,115 @@ func (f *fakeContent) ListInProgress(context.Context, v1.ListInProgressQuery) (v
 }
 
 var _ v1.ContentService = (*fakeContent)(nil)
+
+// Faceting: the genre options come from Cinemeta's own manifest, and a
+// narrowing it did not declare is refused.
+
+func TestCatalogsDeclareGenresFromTheManifest(t *testing.T) {
+	server := fakeCinemeta()
+	defer server.Close()
+	capability := New(server.Client())
+	capability.client.base = server.URL
+
+	resp, err := capability.Catalogs(context.Background(), v1.CatalogsRequest{
+		Caller: v1.CallerFromSession("s-1"),
+	})
+	if err != nil {
+		t.Fatalf("Catalogs: %v", err)
+	}
+
+	byKey := map[string]v1.Catalog{}
+	for _, c := range resp.Catalogs {
+		byKey[c.NativeType+"/"+c.ID] = c
+	}
+
+	film := byKey["movie/top"]
+	if len(film.Filters) != 1 || film.Filters[0].Name != "genre" || film.Filters[0].Label != "Genre" {
+		t.Fatalf("popular films filters = %+v, want one genre filter", film.Filters)
+	}
+	// The empty option is dropped: a value a consumer can select and the source
+	// will not honour is worse than one fewer chip.
+	options := film.Filters[0].Options
+	if len(options) != 2 || options[0].Value != "Action" || options[0].Label != "Action" {
+		t.Fatalf("genre options = %+v, want Action and Sci-Fi with value == label", options)
+	}
+
+	// Television's own list, not film's — the manifest declares them separately
+	// and reading one for both is the easy version of this to get wrong.
+	series := byKey["series/top"]
+	if len(series.Filters) != 1 || series.Filters[0].Options[0].Value != "Crime" {
+		t.Fatalf("series filters = %+v, want television's genres", series.Filters)
+	}
+
+	// A catalog the manifest gives no genre extra declares no filter.
+	if got := byKey["movie/imdbRating"].Filters; len(got) != 0 {
+		t.Errorf("featured films declared %+v; the manifest gives it no genre extra", got)
+	}
+}
+
+func TestANarrowedCatalogAsksForTheGenre(t *testing.T) {
+	server := fakeCinemeta()
+	defer server.Close()
+	capability := New(server.Client())
+	capability.client.base = server.URL
+	ctx := context.Background()
+
+	if _, err := capability.CatalogItems(ctx, v1.CatalogItemsRequest{
+		Caller: v1.CallerFromSession("s-1"), CatalogID: "top", NativeType: "movie",
+		Filters: map[string]string{"genre": "Sci-Fi"},
+	}); err != nil {
+		t.Fatalf("CatalogItems: %v", err)
+	}
+
+	want := "/catalog/movie/top/genre=Sci-Fi.json"
+	for _, path := range requestedPaths(server) {
+		if path == want {
+			return
+		}
+	}
+	t.Fatalf("no request to %q; paths were %v", want, requestedPaths(server))
+}
+
+// A genre the manifest never declared is refused. The addon protocol answers an
+// unknown genre with the *unfiltered* listing, so passing it through would
+// return a plausible page for a question nobody asked.
+func TestAnUndeclaredGenreIsRefused(t *testing.T) {
+	server := fakeCinemeta()
+	defer server.Close()
+	capability := New(server.Client())
+	capability.client.base = server.URL
+	ctx := context.Background()
+
+	if _, err := capability.CatalogItems(ctx, v1.CatalogItemsRequest{
+		Caller: v1.CallerFromSession("s-1"), CatalogID: "top", NativeType: "movie",
+		Filters: map[string]string{"genre": "Nonesuch"},
+	}); err == nil {
+		t.Error("an undeclared genre was accepted; it must be declined rather than widened away")
+	}
+	if _, err := capability.CatalogItems(ctx, v1.CatalogItemsRequest{
+		Caller: v1.CallerFromSession("s-1"), CatalogID: "top", NativeType: "movie",
+		Filters: map[string]string{"year": "2025"},
+	}); err == nil {
+		t.Error("an undeclared filter name was accepted")
+	}
+}
+
+func TestImportStoresGenresOnTheWork(t *testing.T) {
+	server := fakeCinemeta()
+	defer server.Close()
+	capability := New(server.Client())
+	capability.client.base = server.URL
+	content := newFakeContent()
+
+	result, err := capability.Import(context.Background(), content, v1.ImportRequest{
+		Caller: v1.CallerFromSession("s-1"),
+		Ref:    v1.ContentRef{Provider: CapabilityID, NativeType: "movie", NativeID: "tt0133093"},
+	})
+	if err != nil {
+		t.Fatalf("Import: %v", err)
+	}
+	got := content.nodes[result.WorkID].Genres
+	if len(got) != 2 || got[0] != "Action" || got[1] != "Sci-Fi" {
+		t.Fatalf("work genres = %v, want Cinemeta's own [Action Sci-Fi] unreconciled", got)
+	}
+}

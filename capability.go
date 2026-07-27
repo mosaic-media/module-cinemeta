@@ -48,6 +48,10 @@ var (
 // nothing else.
 type Capability struct {
 	client *Client
+	// facets caches the genre options a catalog declares its filter from. It is
+	// on the Capability rather than the Client because it outlives one
+	// invocation and changes on the order of never.
+	facets facetCache
 }
 
 // New builds the capability over an HTTP client (nil for a default). The
@@ -131,6 +135,13 @@ func (c *Capability) Import(ctx context.Context, svc v1.ContentService, req v1.I
 		// Landscape is left empty: Cinemeta has no wide key art, and an empty
 		// field is how a consumer tells "the source has none" from "nobody asked".
 		Artwork: v1.Artwork{Poster: title.Poster, Backdrop: title.Backdrop, Logo: title.Logo},
+		// Genres, for the same reason and on the same terms: a facet is a
+		// question asked across the whole library, and it cannot be answered by a
+		// round trip per title. Cinemeta's own words, unreconciled — it says
+		// "Sci-Fi" where TMDB says "Science Fiction", and a library holding both
+		// offers both, which is true where a synonym table would be tidy and
+		// invented (SDK v0.25.0).
+		Genres: title.Genres,
 	})
 	if err != nil {
 		return v1.ImportResult{}, fmt.Errorf("create work: %w", err)
