@@ -1,15 +1,18 @@
 # Claude Instructions — module-cinemeta
 
-This repository is Mosaic's **default metadata provider** and its first
-guarantee-clause **core module**
-([platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md)):
+Mosaic's **default metadata provider**: a client of one service, Cinemeta,
+filling the metadata, search and catalog roles with no credential of any kind.
+
+`module-stremio-addons` is the client of the Stremio *addon protocol*, and stays
+that. This module is not that, and must not become it.
+
+It is a **core module** under the guarantee clause of
+[architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md):
 metadata and search are a required capability class
 ([platform#23](https://github.com/mosaic-media/platform/blob/main/docs/adr/0023-metadata-as-required-capability.md)),
 so one provider must be present in every binary with no install step that can
-fail and no configuration that can be omitted.
-
-It is a client of one service — Cinemeta — not of the Stremio addon protocol.
-`module-stremio-addons` is that, and stays that.
+fail and no configuration that can be omitted. Why *this* module is the one that
+answers for it is [module-cinemeta#1](docs/adr/0001-the-guaranteed-metadata-provider-needs-no-credential.md).
 
 ## What makes this module different, and what must stay true
 
@@ -18,6 +21,17 @@ It is a client of one service — Cinemeta — not of the Stremio addon protocol
   that can be misconfigured. If a change here starts to add a setting, stop: the
   thing being asked for probably belongs in `module-stremio-addons`, where a
   user's own addons live.
+
+  **This survived a decision that went the other way for everybody else.** Mosaic
+  now does ship project credentials in official builds
+  ([architecture#4](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0004-project-credentials-in-official-builds.md)),
+  which reversed the Mosaic-held-key alternative
+  [module-cinemeta#1](docs/adr/0001-the-guaranteed-metadata-provider-needs-no-credential.md)
+  rejected — and it explicitly left this module as the zero-configuration floor,
+  because a shared credential can be revoked or throttled and a guarantee resting
+  on one is not a guarantee. **A bundled key here would dissolve the floor**, so
+  the pattern the other modules follow is the one thing not to copy into this
+  repository.
 - **The service address is a constant, not a field a deployment can reach.** The
   `base` field on `Client` exists so tests can point at an `httptest` server and
   for no other reason. Do not export it, do not read it from the environment.
@@ -26,64 +40,89 @@ It is a client of one service — Cinemeta — not of the Stremio addon protocol
   that is the shape rather than a gap.
 - **Report the gaps, do not fill them by inventing.** Cinemeta has no clearart,
   no banners, no collections, no "similar", and no character names or headshots
-  on its cast — [sdk#3](https://github.com/mosaic-media/sdk/blob/main/docs/adr/0003-rich-metadata-preview.md)'s
+  on its cast —
+  [sdk#3](https://github.com/mosaic-media/sdk/blob/main/docs/adr/0003-rich-metadata-preview.md)'s
   recorded gaps. An empty field is how a consumer tells "the source has none"
   from "nobody asked". A TMDB- or Fanart-class provider closes them; this one
   does not pretend to.
 - **Content is bound under `imdb`, not under `cinemeta`.** Cinemeta's ids *are*
-  IMDb ids, and using the accurate scheme is what makes a title added here the
-  same Work as one a Stremio addon added rather than a duplicate ([platform#18](https://github.com/mosaic-media/platform/blob/main/docs/adr/0018-virtual-and-materialized-content.md)).
+  IMDb ids, so `providerScheme = "imdb"` is the accurate scheme, and it is what
+  makes a title added here the same Work as one a Stremio addon added rather than
+  a duplicate
+  ([platform#18](https://github.com/mosaic-media/platform/blob/main/docs/adr/0018-virtual-and-materialized-content.md)).
   Changing this would silently double a library.
+
+  Know the cost it carries: binding only `imdb` is why a series imported through
+  this module cannot be enriched by a provider that keys television on a TVDB id.
+  That is a real limit of the floor, not a defect to fix by inventing an id.
 
 ## The boundary is the point
 
 - **Import only [`sdk`](https://github.com/mosaic-media/sdk) and the standard
   library.** `boundary_test.go` parses every import and fails on anything else.
-  There is deliberately **no `sdui` exemption**: the Stremio module has one
-  because it contributes a settings screen ([sdk#4](https://github.com/mosaic-media/sdk/blob/main/docs/adr/0004-module-contributed-settings-ui.md)), and this module has no
-  settings.
-- **The SDK holds up its end: it names no implementation and depends on nothing**
-  ([sdk#10](https://github.com/mosaic-media/sdk/blob/main/docs/adr/0010-the-sdk-carries-no-implementation.md)).
-  It says how a module interacts with the Platform; the Platform holds the
-  implementations. So "only the SDK" costs this module nothing transitively, and
-  a gap that could only be closed by the SDK naming a library is a Platform
-  change rather than an SDK bump.
+  There is deliberately **no `contracts` exemption**: a module gets one to author
+  its own settings screen
+  ([sdk#4](https://github.com/mosaic-media/sdk/blob/main/docs/adr/0004-module-contributed-settings-ui.md)),
+  and this module has no settings, so it has no reason to reach the UI contract
+  at all. Adding that import means a setting arrived — see the first rule above.
 - **It matters more for a core module than for an optional one.** A core module
-  is compiled into the Platform binary and shares its dependency graph
-  ([platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md)), so a dependency added here is one the Platform and every other
-  core module must resolve compatibly. The boundary is also what keeps the tier
-  a *delivery* decision: this code could move out of process as a build change
-  rather than a rewrite
+  is compiled into the Platform binary and shares its dependency graph, so a
+  dependency added here is one the Platform and every other core module must
+  resolve compatibly. The boundary is also what keeps the tier a *delivery*
+  decision: this code could move out of process as a build change rather than a
+  rewrite
   ([platform#39](https://github.com/mosaic-media/platform/blob/main/docs/adr/0039-extension-module-boundary.md)).
+- **"Only the SDK" is only as good as the SDK's own graph.** Check `go.mod`'s
+  indirect requires rather than assuming the transitive cost is zero;
+  [sdk#10](https://github.com/mosaic-media/sdk/blob/main/docs/adr/0010-the-sdk-carries-no-implementation.md)
+  is the decision aimed at that, and its Status says where it has got to. Read
+  the Status; do not restate the decision here as though it were built.
 - **This module is an anti-corruption layer**
   ([module-stremio-addons#2](https://github.com/mosaic-media/module-stremio-addons/blob/main/docs/adr/0002-modules-as-anti-corruption-layers.md)).
   Every Cinemeta-ism stops in `cinemeta.go` and the Platform learns none of them.
-- **It owns no schema** ([platform#8](https://github.com/mosaic-media/platform/blob/main/docs/adr/0008-capabilities-do-not-own-stores.md)): everything it writes goes through
-  `ContentService`, acting as the `Caller` it was handed ([platform#13](https://github.com/mosaic-media/platform/blob/main/docs/adr/0013-how-a-capability-acts.md)).
-- **MIT-licensed**, like Mosaic's other modules and unlike the Platform's AGPL
-  ([platform#1](https://github.com/mosaic-media/platform/blob/main/docs/adr/0001-transactional-store-extensibility.md)).
+- **It owns no schema**: everything it writes goes through `ContentService`,
+  acting as the `Caller` it was handed.
 
 ## Check the fake against the live service
 
 The test suite is hermetic and the fake documents are trimmed copies of real
-ones. **When you change what the client decodes, fetch the real document and
-look at it**, rather than extending the fake from what the code expects:
+ones. **When you change what the client decodes, fetch the real document and look
+at it**, rather than extending the fake from what the code expects:
 
 ```bash
 curl -sSL https://v3-cinemeta.strem.io/meta/series/tt0903747.json | python3 -m json.tool | head -60
 ```
 
-This has already caught a bug the fake hid. Cinemeta answers `200` for an id it
-does not know, in **two** shapes — an unknown series returns `{}`, an unknown
-*film* returns a meta echoing the id and type with no name — so the obvious
-emptiness test passes and the Platform materialises a Work titled `tt99999999`.
-The test now pins both shapes.
+This has already caught a bug the fake hid. **Cinemeta answers `200` for an id it
+does not know, in two different shapes** — an unknown series returns no meta at
+all, an unknown *film* returns a meta echoing the id and type back with no name.
+So the obvious emptiness test passes on one shape and not the other, and the
+consequence downstream is a library Work titled `tt99999999`. The test pins both
+shapes; keep it that way, and assume a third shape exists until you have looked.
+
+## Everything runs in the container, nothing runs on the host
+
+**Do not run `go build`, `go test`, `go vet` or `gofmt` directly on this
+machine.**
+
+```bash
+docker compose -f docker-compose.test.yml run --rm test
+```
+
+That runs gofmt, `go build ./...`, `go vet ./...` and `go test ./...` against the
+Go version pinned in the compose file, which must stay equal to `go.mod`'s.
+Append `bash` for a shell in the same environment.
+
+The container resolves the SDK from the proxy exactly as a consumer does, which
+is what makes the boundary test mean what it claims: a host with a populated
+module cache, a leftover `go.work` or a stray `replace` can satisfy an import a
+third party's machine could not, and the test still passes because the import
+resolved.
 
 ## Versioning and release
 
-The Platform requires this at a **tagged version with no `replace`** — a
-`replace` must never land in a commit. A change is a minor bump, tagged and
-pushed, then the Platform's `go.mod` require is bumped to match.
+A change is a **minor bump**, tagged and pushed. Consumers then move their own
+`require`; **a `replace` must never land in a commit.**
 
 ```bash
 git tag v0.1.0 && git push origin main && git push origin v0.1.0
@@ -93,87 +132,21 @@ The module reports the version that was **actually linked**, via
 `v1.ModuleVersion` reading the build graph — not a hand-maintained constant,
 which nothing forces to agree with anything.
 
-## Everything runs in the container, nothing runs on the host
+## Decision records
 
-**Do not run `go build`, `go test`, `go vet` or `gofmt` directly on this
-machine.** This repository's gates run inside its test container:
-
-```bash
-docker compose -f docker-compose.test.yml run --rm test
-```
-
-That runs gofmt, `go build ./...`, `go vet ./...` and `go test ./...` against the
-Go version pinned in the compose file, which must stay equal to the one in
-`go.mod`. Append `bash` for a shell in the same environment.
-
-The container resolves the SDK from the proxy exactly as a consumer does, which
-is what makes the boundary test mean what it claims: a host with a populated
-module cache, a leftover `go.work` or a stray `replace` can satisfy an import a
-third party's machine could not, and the test still passes because the import
-resolved.
+This repository owns the records whose mechanism it holds. They are in
+[`docs/adr/`](docs/adr/), and **[`docs/adr/README.md`](docs/adr/README.md) is a
+generated index — read it first, and do not hand-edit it.** It also lists the
+records held elsewhere that this repository's decisions depend on.
 
 ## Workflow
 
-- Commit and push this repository **separately** from `platform`.
-- **Commit author identity** must be `AdamNi-7080 <anicholls41@gmail.com>`.
-- The test container green before pushing.
 - Observability goes through the SDK's ambient `v1.Telemetry`
   ([sdk#5](https://github.com/mosaic-media/sdk/blob/main/docs/adr/0005-modules-observe-through-the-sdk.md)),
   reached as `TelemetryFrom(ctx)`. Do not print, and do not configure an
   exporter, a sink or retention — the Platform owns the observability plane.
+- **MIT-licensed**
+  ([architecture#1](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0001-licensing.md)).
 
-## The roadmap and the decision records
-
-These rules are identical in every Mosaic repository. They exist because the
-state of the build and the reasons behind it are the two things that rot fastest
-and report nothing when they do — no build fails, no test goes red.
-
-### The roadmap is maintained, not consulted
-
-**`docs/roadmap.md` in [`architecture`](https://github.com/mosaic-media/architecture)
-is the single record of where the build is.** Read it before starting work, and
-**update it in the same session as the change that dates it** — not in a
-follow-up, which does not happen.
-
-- **A slice that lands is marked landed, with what was left out.** "Built" with
-  no qualifier is a claim that the whole slice shipped; if part of it did not,
-  say which part and why in the same sentence.
-- **Implementation that departs from the plan is recorded where it departed.**
-  The roadmap is derived from the code, not from the intention that preceded it,
-  and the surprises are the most valuable thing in it.
-- **Do not restate the roadmap here.** A second copy of "what is built" in a
-  `CLAUDE.md` is how the first copy goes stale unnoticed. This file carries how
-  to work in *this* repository; the roadmap carries what has been done across all
-  of them.
-- **A capability with no client path is not done — it is
-  [owed](https://github.com/mosaic-media/architecture/blob/main/docs/unreachable-capability.md).**
-  If you delete or fail to build a client path to a working service, add its row
-  to that register in the same change.
-
-### Decision records are append-only
-
-An ADR is an account of what was decided and why, at a time. It is evidence, not
-documentation, and its value is that it was not edited afterwards.
-
-- **Never rewrite a record's body to match what was built.** Not to correct it,
-  not to annotate it, not to add "as built, this differs". That pattern turns a
-  record into a running commentary and destroys the thing it is for.
-- **State changes in the `**Status:**` line, and nowhere else.** That is where a
-  record says it is built, built in part (naming the part), or superseded —
-  wholly ("Superseded by ADR N") or partly ("Partly superseded: X was reversed by
-  ADR N; the rest stands").
-- **A changed decision needs a new record that supersedes it.** If the code
-  deliberately does something a record decided against, that is a decision and it
-  is written down as one, with its own Context / Decision / Alternatives /
-  Consequences. Both records then stand: the old one keeps its reasoning, the new
-  one carries the change.
-- **An unbuilt decision is not a superseded one.** "We have not done this yet"
-  belongs in the Status line and the roadmap. Only a genuine reversal earns a new
-  record.
-- **Records live only in `architecture/docs/adr/`**, numbered sequentially in
-  kebab-case. Adding one means adding it to `nav:` in `mkdocs.yml`, and
-  `mkdocs build --strict` must pass.
-
-**If the code and a record disagree, say so rather than quietly picking one.** An
-honest "this is unresolved" is worth more than a plausible reconciliation that
-reads as settled.
+<!-- shared-rules:begin -->
+<!-- shared-rules:end -->
