@@ -61,7 +61,7 @@ type Capability struct {
 // It takes no settings, and that is the point rather than an omission. Every
 // provider role receives the module's settings document on each invocation
 // (platform#17) and this module ignores it, because a guarantee-clause core module
-// (platform#3) that can be configured is one that can be misconfigured: there is
+// (architecture#3) that can be configured is one that can be misconfigured: there is
 // no key to be missing, no URL to be wrong, and no list a user can empty. The
 // client is therefore built once here rather than per invocation, unlike a
 // module whose configuration can change between two calls.

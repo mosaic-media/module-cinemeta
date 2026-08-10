@@ -6,9 +6,9 @@ bundled Cinemeta default. Verified live: a fresh session's home screen renders
 Cinemeta's catalogs and search returns its results with no configuration.
 Resolves the question [platform#23](https://github.com/mosaic-media/platform/blob/main/docs/adr/0023-metadata-as-required-capability.md)'s
 Status line records as open. Refines
-[platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md)'s guarantee clause. **Partly superseded:
+[architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md)'s guarantee clause. **Partly superseded:
 the "ship a Mosaic-held TMDB key" alternative rejected below was reversed by
-[supervisor#1](https://github.com/mosaic-media/supervisor/blob/main/docs/adr/0001-supervisor-as-host-manager.md); the rest of this record stands,
+[architecture#4](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0004-project-credentials-in-official-builds.md); the rest of this record stands,
 and `module-cinemeta` remains the core zero-configuration floor.**
 **Date:** 2026-07-23
 
@@ -16,7 +16,7 @@ and `module-cinemeta` remains the core zero-configuration floor.**
 
 [platform#23](https://github.com/mosaic-media/platform/blob/main/docs/adr/0023-metadata-as-required-capability.md) makes metadata and search a
 required capability class: a Mosaic that cannot identify or find content is not
-a degraded Mosaic, it is inert. [platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md) makes a
+a degraded Mosaic, it is inert. [architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md) makes a
 provider for that class a **core module** under its guarantee clause — present
 in every binary, "with no install step that can fail."
 
@@ -30,7 +30,7 @@ paste an API key. The requirement is met in letter and not in spirit, and no
 TMDB-based module can meet it in spirit.
 
 "No install step that can fail" and "no configuration that can be omitted" are
-not the same property, and [platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md) only asked for the first. The distinction
+not the same property, and [architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md) only asked for the first. The distinction
 did not matter while the guarantee was being met by an addon URL bundled inside
 `module-stremio-addons`, because that URL needed nothing from the user either.
 It matters now, and it is what the two clauses were reaching for: a fresh
@@ -39,7 +39,7 @@ install that works.
 Three things are tangled together and are separated here.
 
 - **Where the default lives.** [platform#23](https://github.com/mosaic-media/platform/blob/main/docs/adr/0023-metadata-as-required-capability.md) specified a Platform bootstrap seed; the
-  code put it inside an extension module; [platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md) said a metadata provider is
+  code put it inside an extension module; [architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md) said a metadata provider is
   core. All three are on record and they disagree.
 - **What the guarantee actually requires of a provider.** Registration, or
   usability without configuration.
@@ -131,7 +131,7 @@ in one of them and not the other.
 
 **Promote `module-stremio-addons` itself into the core tier.** *Rejected*, for
 the reason [platform#23](https://github.com/mosaic-media/platform/blob/main/docs/adr/0023-metadata-as-required-capability.md) gave and
-[platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md) restated: a third-party content ecosystem is
+[architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md) restated: a third-party content ecosystem is
 not infrastructure, and the module is load-bearing as the proof that the
 extension path exists.
 
@@ -159,9 +159,9 @@ extension path exists.
   roadmap has kept open**, and this record deliberately does not close it: it is
   the first time the seam is load-bearing rather than hypothetical, which is
   information, not a licence to invent an answer.
-- **The core set grew by one, and [platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md) warns it must stay small.** The
+- **The core set grew by one, and [architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md) warns it must stay small.** The
   justification is the guarantee clause and nothing else; it belongs in the
-  register of what is and is not core that [platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md) asks for and that still has
+  register of what is and is not core that [architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md) asks for and that still has
   no home.
 - **A source checked against a fake is not a source that was checked.** Building
   this found that Cinemeta answers `200` for an unknown id in two different

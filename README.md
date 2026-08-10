@@ -19,7 +19,7 @@ constructing it is all the setup there is.
 Metadata and search are a **required capability class**
 ([platform#23](https://github.com/mosaic-media/platform/blob/main/docs/adr/0023-metadata-as-required-capability.md)):
 a Mosaic that cannot identify or find content reads as broken rather than as
-unconfigured. [platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md)
+unconfigured. [architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md)
 makes a provider for that class a **core module** under its guarantee clause —
 compiled into the binary, first-party, with no install step that can fail.
 
@@ -67,7 +67,7 @@ as one a Stremio addon would have added, rather than a duplicate
 This module imports only the published [`sdk`](https://github.com/mosaic-media/sdk)
 and the standard library, enforced by `boundary_test.go` parsing every import.
 Being a core module is a **delivery** decision, not a contract one
-([platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md)):
+([architecture#3](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0003-two-module-tiers.md)):
 the code is shaped exactly as a third party's would be, does not know which tier
 it is in, and could move out of process as a build change rather than a rewrite
 ([platform#39](https://github.com/mosaic-media/platform/blob/main/docs/adr/0039-extension-module-boundary.md)).
@@ -104,5 +104,5 @@ Built: the three roles, the import path for films and series, and the hermetic
 test suite. Verified against the live service by hand — search, both metadata
 shapes, all four catalogs, paging, and the unknown-id shapes above.
 
-MIT-licensed ([platform#1](https://github.com/mosaic-media/platform/blob/main/docs/adr/0001-transactional-store-extensibility.md)),
+MIT-licensed ([architecture#1](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0001-licensing.md)),
 like Mosaic's other modules and unlike the Platform's AGPL.

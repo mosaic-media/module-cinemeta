@@ -104,7 +104,7 @@ jobs:
           GOFLAGS: -mod=mod
 
   # This module is composed into the Platform binary and required in its go.mod
-  # today — whether core by tier (platform#3) or an extension module still composed
+  # today — whether core by tier (architecture#3) or an extension module still composed
   # statically pending the move out of process (platform#49). Either way, its
   # release reaches the Platform through the go.mod bump platform#48 automates, so
   # this dispatch fires that bump. When an extension module does move out of

@@ -2,7 +2,7 @@
 // Cinemeta, Stremio's public film and television metadata service, filling the
 // metadata, search and catalog provider roles (sdk#2).
 //
-// It is a **core module** (platform#3) under the guarantee clause. Metadata and
+// It is a **core module** (architecture#3) under the guarantee clause. Metadata and
 // search are a required capability class (platform#23) — a Mosaic that cannot
 // identify or find content reads as broken rather than as unconfigured — so at
 // least one provider must be present in every binary, with no install step that
@@ -23,7 +23,7 @@
 // protocol and a user-managed addon list that could be emptied. platform#23
 // recorded that placement as unresolved — "whether the default belongs to the
 // Platform or to the module is a question this record answers one way and the
-// code answers the other" — and platform#3 answered it the other way by making a
+// code answers the other" — and architecture#3 answered it the other way by making a
 // metadata provider core. A guarantee cannot be delegated to a module that is
 // not guaranteed to be there.
 //

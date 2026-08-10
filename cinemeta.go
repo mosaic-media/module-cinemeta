@@ -26,13 +26,13 @@ import (
 // catalog declares its filter from, in facets.go — decides no catalog's
 // existence, only the values of one control. That is the whole difference
 // between a module that guarantees metadata and one that sources it from
-// whatever a user configured (platform#3), and it is why the general Stremio
+// whatever a user configured (architecture#3), and it is why the general Stremio
 // addon client is a separate module rather than this one with more options.
 
 const (
 	// apiBase is Cinemeta's public endpoint. It is a constant rather than a
 	// setting on purpose: a module whose address can be changed is a module that
-	// can be pointed at nothing, and the guarantee clause (platform#3) is that this
+	// can be pointed at nothing, and the guarantee clause (architecture#3) is that this
 	// one always works.
 	//
 	// Catalog requests 307-redirect to Cinemeta's catalog host. Go's client

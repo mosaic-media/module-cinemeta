@@ -18,7 +18,7 @@ import (
 //
 // It matters here for a reason particular to a core module. This one is
 // compiled into the Platform binary and shares its dependency graph
-// (platform#3), so a dependency added here is a dependency the Platform and every
+// (architecture#3), so a dependency added here is a dependency the Platform and every
 // other core module must resolve at a compatible version. The boundary is what
 // keeps the tier a *delivery* decision rather than a contract one: this module
 // is written exactly as a third party's would be, and could move out of process
