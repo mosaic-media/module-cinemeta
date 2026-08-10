@@ -14,18 +14,18 @@ import (
 // executable: this module must use only the published SDK and the standard
 // library. It is a separate Go module, so Go itself already rejects a
 // Platform-internal import; this parse keeps the intent explicit and catches a
-// third-party dependency creeping in too (ADR 0008, ADR 0016).
+// third-party dependency creeping in too (sdk#1, platform#12).
 //
 // It matters here for a reason particular to a core module. This one is
 // compiled into the Platform binary and shares its dependency graph
-// (ADR 0062), so a dependency added here is a dependency the Platform and every
+// (platform#3), so a dependency added here is a dependency the Platform and every
 // other core module must resolve at a compatible version. The boundary is what
 // keeps the tier a *delivery* decision rather than a contract one: this module
 // is written exactly as a third party's would be, and could move out of process
-// as a build change rather than a rewrite (ADR 0064).
+// as a build change rather than a rewrite (platform#39).
 //
 // Note the absence of an `sdui` exemption. The Stremio module has one, because
-// it contributes a settings screen (ADR 0038); this module has no settings, so
+// it contributes a settings screen (sdk#4); this module has no settings, so
 // it has no reason to reach the UI contract at all.
 func TestModuleImportsOnlyPublishedContracts(t *testing.T) {
 	const (

@@ -1,9 +1,9 @@
 // Package cinemeta is Mosaic's default metadata provider: a client of
 // Cinemeta, Stremio's public film and television metadata service, filling the
-// metadata, search and catalog provider roles (ADR 0027).
+// metadata, search and catalog provider roles (sdk#2).
 //
-// It is a **core module** (ADR 0062) under the guarantee clause. Metadata and
-// search are a required capability class (ADR 0035) — a Mosaic that cannot
+// It is a **core module** (platform#3) under the guarantee clause. Metadata and
+// search are a required capability class (platform#23) — a Mosaic that cannot
 // identify or find content reads as broken rather than as unconfigured — so at
 // least one provider must be present in every binary, with no install step that
 // can fail and no configuration that can be omitted. This module is that
@@ -20,10 +20,10 @@
 // The metadata Mosaic shipped with was a Cinemeta addon URL bundled *inside*
 // module-stremio-addons, which is an extension module: a default belonging to
 // something a deployment might not install, reached through a general addon
-// protocol and a user-managed addon list that could be emptied. ADR 0035
+// protocol and a user-managed addon list that could be emptied. platform#23
 // recorded that placement as unresolved — "whether the default belongs to the
 // Platform or to the module is a question this record answers one way and the
-// code answers the other" — and ADR 0062 answered it the other way by making a
+// code answers the other" — and platform#3 answered it the other way by making a
 // metadata provider core. A guarantee cannot be delegated to a module that is
 // not guaranteed to be there.
 //
@@ -40,7 +40,7 @@
 //   - RoleSearch — free-text search over film and television. The other half of
 //     the required class, and the half that produces a ref at all: without it
 //     nothing could name the content the metadata role answers for, which is
-//     why ADR 0035 makes the two one class rather than two.
+//     why platform#23 makes the two one class rather than two.
 //   - RoleCatalog — Cinemeta's Popular and Featured collections for both types,
 //     so a fresh install has rails to render rather than an empty home screen.
 //
@@ -54,10 +54,10 @@
 //
 // Cinemeta has no clearart or banner artwork, no franchise collections, no
 // "similar titles", and no character names or headshots on its cast. Those are
-// ADR 0034's recorded gaps and they are structural to the source, not decoding
+// sdk#3's recorded gaps and they are structural to the source, not decoding
 // this module skipped. A TMDB- or Fanart-class provider is what closes them;
 // this module reports honestly empty fields rather than inventing.
 //
-// It owns no schema (ADR 0012): everything it writes goes through
-// ContentService, acting as the Caller the Platform hands it (ADR 0017).
+// It owns no schema (platform#8): everything it writes goes through
+// ContentService, acting as the Caller the Platform hands it (platform#13).
 package cinemeta

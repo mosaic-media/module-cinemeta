@@ -2,9 +2,9 @@
 
 This repository is Mosaic's **default metadata provider** and its first
 guarantee-clause **core module**
-([ADR 0062](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0062-two-module-tiers.md)):
+([platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md)):
 metadata and search are a required capability class
-([ADR 0035](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0035-metadata-as-required-capability.md)),
+([platform#23](https://github.com/mosaic-media/platform/blob/main/docs/adr/0023-metadata-as-required-capability.md)),
 so one provider must be present in every binary with no install step that can
 fail and no configuration that can be omitted.
 
@@ -26,13 +26,13 @@ It is a client of one service — Cinemeta — not of the Stremio addon protocol
   that is the shape rather than a gap.
 - **Report the gaps, do not fill them by inventing.** Cinemeta has no clearart,
   no banners, no collections, no "similar", and no character names or headshots
-  on its cast — [ADR 0034](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0034-rich-metadata-preview.md)'s
+  on its cast — [sdk#3](https://github.com/mosaic-media/sdk/blob/main/docs/adr/0003-rich-metadata-preview.md)'s
   recorded gaps. An empty field is how a consumer tells "the source has none"
   from "nobody asked". A TMDB- or Fanart-class provider closes them; this one
   does not pretend to.
 - **Content is bound under `imdb`, not under `cinemeta`.** Cinemeta's ids *are*
   IMDb ids, and using the accurate scheme is what makes a title added here the
-  same Work as one a Stremio addon added rather than a duplicate (ADR 0028).
+  same Work as one a Stremio addon added rather than a duplicate ([platform#18](https://github.com/mosaic-media/platform/blob/main/docs/adr/0018-virtual-and-materialized-content.md)).
   Changing this would silently double a library.
 
 ## The boundary is the point
@@ -40,28 +40,28 @@ It is a client of one service — Cinemeta — not of the Stremio addon protocol
 - **Import only [`sdk`](https://github.com/mosaic-media/sdk) and the standard
   library.** `boundary_test.go` parses every import and fails on anything else.
   There is deliberately **no `sdui` exemption**: the Stremio module has one
-  because it contributes a settings screen (ADR 0038), and this module has no
+  because it contributes a settings screen ([sdk#4](https://github.com/mosaic-media/sdk/blob/main/docs/adr/0004-module-contributed-settings-ui.md)), and this module has no
   settings.
 - **The SDK holds up its end: it names no implementation and depends on nothing**
-  ([ADR 0135](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0135-the-sdk-carries-no-implementation.md)).
+  ([sdk#10](https://github.com/mosaic-media/sdk/blob/main/docs/adr/0010-the-sdk-carries-no-implementation.md)).
   It says how a module interacts with the Platform; the Platform holds the
   implementations. So "only the SDK" costs this module nothing transitively, and
   a gap that could only be closed by the SDK naming a library is a Platform
   change rather than an SDK bump.
 - **It matters more for a core module than for an optional one.** A core module
   is compiled into the Platform binary and shares its dependency graph
-  (ADR 0062), so a dependency added here is one the Platform and every other
+  ([platform#3](https://github.com/mosaic-media/platform/blob/main/docs/adr/0003-platform-as-execution-kernel.md)), so a dependency added here is one the Platform and every other
   core module must resolve compatibly. The boundary is also what keeps the tier
   a *delivery* decision: this code could move out of process as a build change
   rather than a rewrite
-  ([ADR 0064](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0064-extension-module-boundary.md)).
+  ([platform#39](https://github.com/mosaic-media/platform/blob/main/docs/adr/0039-extension-module-boundary.md)).
 - **This module is an anti-corruption layer**
-  ([ADR 0051](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0051-modules-as-anti-corruption-layers.md)).
+  ([module-stremio-addons#2](https://github.com/mosaic-media/module-stremio-addons/blob/main/docs/adr/0002-modules-as-anti-corruption-layers.md)).
   Every Cinemeta-ism stops in `cinemeta.go` and the Platform learns none of them.
-- **It owns no schema** (ADR 0012): everything it writes goes through
-  `ContentService`, acting as the `Caller` it was handed (ADR 0017).
+- **It owns no schema** ([platform#8](https://github.com/mosaic-media/platform/blob/main/docs/adr/0008-capabilities-do-not-own-stores.md)): everything it writes goes through
+  `ContentService`, acting as the `Caller` it was handed ([platform#13](https://github.com/mosaic-media/platform/blob/main/docs/adr/0013-how-a-capability-acts.md)).
 - **MIT-licensed**, like Mosaic's other modules and unlike the Platform's AGPL
-  ([ADR 0022](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0022-licensing.md)).
+  ([platform#1](https://github.com/mosaic-media/platform/blob/main/docs/adr/0001-transactional-store-extensibility.md)).
 
 ## Check the fake against the live service
 
@@ -118,7 +118,7 @@ resolved.
 - **Commit author identity** must be `AdamNi-7080 <anicholls41@gmail.com>`.
 - The test container green before pushing.
 - Observability goes through the SDK's ambient `v1.Telemetry`
-  ([ADR 0059](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0059-modules-observe-through-the-sdk.md)),
+  ([sdk#5](https://github.com/mosaic-media/sdk/blob/main/docs/adr/0005-modules-observe-through-the-sdk.md)),
   reached as `TelemetryFrom(ctx)`. Do not print, and do not configure an
   exporter, a sink or retention — the Platform owns the observability plane.
 

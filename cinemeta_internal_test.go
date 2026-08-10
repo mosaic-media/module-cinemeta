@@ -3,7 +3,7 @@ package cinemeta
 import "testing"
 
 // The translation unit tests. Each one pins a Cinemeta-ism that has to stop at
-// this boundary (ADR 0051), and each case below is a shape the live service
+// this boundary (module-stremio-addons#2), and each case below is a shape the live service
 // actually returns rather than one imagined for the test.
 
 func TestParseYearReadsARangeWithAnEnDash(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 
 // The two discovery roles. They are what produce a ref in the first place: a
 // deployment with only RoleMetadata could describe content it had no way to
-// name, which is why ADR 0035 makes metadata *and* search one required
+// name, which is why platform#23 makes metadata *and* search one required
 // capability class rather than two separate ones.
 
 // Search returns virtual candidates for free text (RoleSearch).
@@ -52,7 +52,7 @@ func (c *Capability) Catalogs(ctx context.Context, req v1.CatalogsRequest) (v1.C
 	return v1.CatalogsResponse{Catalogs: catalogs}, nil
 }
 
-// CatalogItems lists one collection's entries as virtual candidates (ADR 0028).
+// CatalogItems lists one collection's entries as virtual candidates (platform#18).
 // It touches no part of the object graph: browsing a source must not flood the
 // library with everything the source knows about, and Cinemeta knows about
 // everything.

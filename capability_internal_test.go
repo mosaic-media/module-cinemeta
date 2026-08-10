@@ -45,7 +45,7 @@ func TestManifestDeclaresTheRolesItImplements(t *testing.T) {
 			t.Errorf("manifest declares unexpected role %q", role)
 		}
 	}
-	// The Platform refuses to boot on a role declared but unbacked (ADR 0027).
+	// The Platform refuses to boot on a role declared but unbacked (sdk#2).
 	// The compile-time assertions in capability.go are the primary guard; this
 	// checks the manifest agrees with them rather than drifting from them.
 	if _, ok := any(New(nil)).(v1.StreamProvider); ok {
@@ -86,7 +86,7 @@ func TestImportFilm(t *testing.T) {
 	if len(content.parts) != 0 {
 		t.Fatalf("attached %d parts; a metadata module must attach none", len(content.parts))
 	}
-	// Artwork is stored on the node rather than re-derived per read (ADR 0071),
+	// Artwork is stored on the node rather than re-derived per read (platform#45),
 	// and the poster is the upgraded size.
 	if work.Artwork.Poster != "https://images.metahub.space/poster/medium/tt0133093/img" {
 		t.Fatalf("work poster = %q, want the medium metahub poster", work.Artwork.Poster)
@@ -130,7 +130,7 @@ func TestImportSeriesBuildsTheSeasonTree(t *testing.T) {
 	}
 
 	// Episodes land under their season, in order, each carrying its still as the
-	// poster slot (ADR 0071).
+	// poster slot (platform#45).
 	var episodes []string
 	for _, n := range content.ordered() {
 		if n.ItemType == v1.ItemEpisode {
@@ -171,7 +171,7 @@ func TestImportIsIdempotentAcrossProviders(t *testing.T) {
 	}
 	// The dedup is on the IMDb id, not on a name of this module's own — so a
 	// title another source already materialised under that scheme is found too.
-	// That is the whole reason the binding scheme is "imdb" (ADR 0028).
+	// That is the whole reason the binding scheme is "imdb" (platform#18).
 	if len(content.binds) != 1 {
 		t.Fatalf("bindings = %d, want the first import's only", len(content.binds))
 	}
@@ -213,7 +213,7 @@ func TestMetadataTranslatesTheDetailSurface(t *testing.T) {
 		t.Fatalf("genres = %v, want the meta's list", meta.Genres)
 	}
 	// Cast comes from the links array, in billing order, names only — the source
-	// carries no character and no headshot (ADR 0034's recorded gap).
+	// carries no character and no headshot (sdk#3's recorded gap).
 	if len(meta.Cast) != 3 || meta.Cast[0].Name != "Keanu Reeves" {
 		t.Fatalf("cast = %+v, want three billed names led by Keanu Reeves", meta.Cast)
 	}
@@ -299,7 +299,7 @@ func TestSearchUnionsBothTypesAndCarriesADedupableRef(t *testing.T) {
 		t.Fatalf("results = %d, want one per type", len(resp.Results))
 	}
 	// Provider routes an import back here; the external identity is what the
-	// Platform marks in-library on (ADR 0028).
+	// Platform marks in-library on (platform#18).
 	first := resp.Results[0]
 	if first.Ref.Provider != CapabilityID {
 		t.Fatalf("ref provider = %q, want %q", first.Ref.Provider, CapabilityID)

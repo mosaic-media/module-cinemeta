@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// The Cinemeta HTTP client. This file is the anti-corruption layer (ADR 0051):
+// The Cinemeta HTTP client. This file is the anti-corruption layer (module-stremio-addons#2):
 // every Cinemeta-ism — its two spellings of a genre list, its year ranges with
 // an en dash, its cast hidden in a categorised links array, its episodes as a
 // flat video list numbered two different ways, its thumbnail-sized posters —
@@ -26,13 +26,13 @@ import (
 // catalog declares its filter from, in facets.go — decides no catalog's
 // existence, only the values of one control. That is the whole difference
 // between a module that guarantees metadata and one that sources it from
-// whatever a user configured (ADR 0062), and it is why the general Stremio
+// whatever a user configured (platform#3), and it is why the general Stremio
 // addon client is a separate module rather than this one with more options.
 
 const (
 	// apiBase is Cinemeta's public endpoint. It is a constant rather than a
 	// setting on purpose: a module whose address can be changed is a module that
-	// can be pointed at nothing, and the guarantee clause (ADR 0062) is that this
+	// can be pointed at nothing, and the guarantee clause (platform#3) is that this
 	// one always works.
 	//
 	// Catalog requests 307-redirect to Cinemeta's catalog host. Go's client
@@ -80,7 +80,7 @@ type Client struct {
 
 // NewClient builds a client over an HTTP client (nil for a default). The
 // Platform passes its own, which carries the netguard dial guard and the
-// outbound telemetry seam (ADR 0055); a module that builds its own bypasses
+// outbound telemetry seam (platform#33); a module that builds its own bypasses
 // both.
 func NewClient(httpClient *http.Client) *Client {
 	if httpClient == nil {
@@ -181,7 +181,7 @@ func (c *Client) Search(ctx context.Context, text string, nativeTypes []string) 
 // are deliberate rather than an oversight. Cinemeta's "New" catalogs require a
 // year to be supplied as a genre parameter, and its "Last videos" and "Calendar
 // videos" catalogs require a list of series ids the caller must already hold —
-// neither fits a browse surface that addresses a catalog by id alone (ADR 0028).
+// neither fits a browse surface that addresses a catalog by id alone (platform#18).
 // What is left is the four that answer with no argument.
 //
 // The names are Cinemeta's own, qualified by type. Its manifest calls both of
@@ -331,7 +331,7 @@ type Title struct {
 	Rating     float64
 	Runtime    string
 	// Cast is billed names, and names only. Cinemeta carries no character and no
-	// headshot for a credit, which is one of ADR 0034's recorded gaps rather than
+	// headshot for a credit, which is one of sdk#3's recorded gaps rather than
 	// something this decode drops — so the type says so instead of offering
 	// fields that would always be empty.
 	Cast []string

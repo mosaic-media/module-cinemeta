@@ -13,7 +13,7 @@ import (
 const (
 	// CapabilityID is the id the Platform registers this module under, the id a
 	// ref names to route an import back here, and the key any settings document
-	// would be stored under (ADR 0021). There is no settings document — see New.
+	// would be stored under (platform#17). There is no settings document — see New.
 	CapabilityID = "cinemeta"
 	// modulePath is this module's import path, which is how it reads its own
 	// version out of the build graph rather than carrying a constant nothing
@@ -26,7 +26,7 @@ const (
 	// prefix and nothing else — so binding under "imdb" rather than under
 	// "cinemeta" is not a convenience, it is the accurate name for what the id is.
 	// It is also what makes a title added here the same Work as the one a Stremio
-	// addon would have added, instead of a duplicate (ADR 0028's dedup).
+	// addon would have added, instead of a duplicate (platform#18's dedup).
 	providerScheme = "imdb"
 )
 
@@ -36,7 +36,7 @@ var moduleVersion = v1.ModuleVersion(modulePath)
 
 // Capability satisfies the SDK's capability contract and every provider role it
 // declares. The assertions fail to compile if the module drifts from what the
-// Platform invokes or from a role it claims to fill (ADR 0027).
+// Platform invokes or from a role it claims to fill (sdk#2).
 var (
 	_ v1.Capability       = (*Capability)(nil)
 	_ v1.MetadataProvider = (*Capability)(nil)
@@ -56,12 +56,12 @@ type Capability struct {
 
 // New builds the capability over an HTTP client (nil for a default). The
 // Platform passes its own, which carries the netguard dial guard and the
-// outbound telemetry seam (ADR 0055).
+// outbound telemetry seam (platform#33).
 //
 // It takes no settings, and that is the point rather than an omission. Every
 // provider role receives the module's settings document on each invocation
-// (ADR 0021) and this module ignores it, because a guarantee-clause core module
-// (ADR 0062) that can be configured is one that can be misconfigured: there is
+// (platform#17) and this module ignores it, because a guarantee-clause core module
+// (platform#3) that can be configured is one that can be misconfigured: there is
 // no key to be missing, no URL to be wrong, and no list a user can empty. The
 // client is therefore built once here rather than per invocation, unlike a
 // module whose configuration can change between two calls.
@@ -70,7 +70,7 @@ func New(httpClient *http.Client) *Capability {
 }
 
 // Manifest is the module's self-declaration, including the provider roles it
-// fills (ADR 0027).
+// fills (sdk#2).
 //
 // Three roles, and the three it does not declare are as deliberate: no stream
 // and no subtitles, because Cinemeta describes content rather than indexing it;
@@ -88,7 +88,7 @@ func (c *Capability) Manifest() v1.Manifest {
 }
 
 // Import materialises the virtual item named by req.Ref — a result a search or
-// catalog browse produced (ADR 0028) — into the object graph.
+// catalog browse produced (platform#18) — into the object graph.
 //
 // It creates the Work with its artwork and external id, binds the source, and
 // builds the containment tree: a film as Work → feature item, a series as
@@ -129,7 +129,7 @@ func (c *Capability) Import(ctx context.Context, svc v1.ContentService, req v1.I
 		MediaType:   mediaTypeFor(nativeType),
 		Title:       name,
 		ExternalIDs: externalIDs(nativeID),
-		// Stored on the node rather than re-derived per read (ADR 0071). The
+		// Stored on the node rather than re-derived per read (platform#45). The
 		// import already holds this art, so storing it costs nothing here and
 		// saves a provider round trip for every card that later renders the title.
 		// Landscape is left empty: Cinemeta has no wide key art, and an empty
@@ -180,7 +180,7 @@ func (c *Capability) Import(ctx context.Context, svc v1.ContentService, req v1.I
 }
 
 // importFilm builds a film as Work → feature item. A Part attaches to an item,
-// never a work (ADR 0013), so the item exists even with nothing to attach — it
+// never a work (platform#9), so the item exists even with nothing to attach — it
 // is where a stream source later hangs a release.
 func (c *Capability) importFilm(ctx context.Context, svc v1.ContentService, caller v1.Caller, workID v1.NodeID, result *v1.ImportResult) error {
 	if _, err := svc.AddContentChild(ctx, v1.AddContentChildCommand{
@@ -196,7 +196,7 @@ func (c *Capability) importFilm(ctx context.Context, svc v1.ContentService, call
 
 // importSeries builds a series as Work → season container → episode item over
 // the episode list the client already ordered. Each episode carries its still as
-// artwork: for an episode node the poster slot is the still (ADR 0071).
+// artwork: for an episode node the poster slot is the still (platform#45).
 func (c *Capability) importSeries(ctx context.Context, svc v1.ContentService, caller v1.Caller, workID v1.NodeID, title Title, result *v1.ImportResult) error {
 	for _, season := range groupBySeason(title.Episodes) {
 		container, err := svc.AddContentChild(ctx, v1.AddContentChildCommand{
@@ -244,7 +244,7 @@ func (c *Capability) find(ctx context.Context, svc v1.ContentService, caller v1.
 // refFrom builds a ContentRef from a preview. Provider is this module, so an
 // import routes back here; the external identity is the IMDb id, which is what
 // makes a result for a title already in the library read as *In library* rather
-// than as new (ADR 0028).
+// than as new (platform#18).
 func refFrom(p Preview) v1.ContentRef {
 	return v1.ContentRef{
 		Provider:       CapabilityID,
@@ -257,7 +257,7 @@ func refFrom(p Preview) v1.ContentRef {
 }
 
 // mediaTypeFor maps a Cinemeta content type to a Platform media type. There are
-// two; anything else canonicalises as open text (ADR 0015) rather than being
+// two; anything else canonicalises as open text (platform#11) rather than being
 // rejected.
 func mediaTypeFor(nativeType string) v1.MediaType {
 	switch nativeType {

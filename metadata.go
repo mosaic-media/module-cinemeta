@@ -9,9 +9,9 @@ import (
 
 // Metadata resolves descriptive detail for a ref (RoleMetadata). It backs the
 // detail screen for both a virtual result and an in-library node, and it is the
-// detail Import draws on (ADR 0027, ADR 0034).
+// detail Import draws on (sdk#2, sdk#3).
 //
-// It is the role the required capability class (ADR 0035) is really about: with
+// It is the role the required capability class (platform#23) is really about: with
 // no provider filling it, a Mosaic can list what it owns and describe none of
 // it.
 func (c *Capability) Metadata(ctx context.Context, req v1.MetadataRequest) (v1.ContentMetadata, error) {
@@ -20,7 +20,7 @@ func (c *Capability) Metadata(ctx context.Context, req v1.MetadataRequest) (v1.C
 		return v1.ContentMetadata{}, fmt.Errorf("fetch Cinemeta metadata: %w", err)
 	}
 
-	// Through the SDK's ambient telemetry rather than a print (ADR 0059): this
+	// Through the SDK's ambient telemetry rather than a print (sdk#5): this
 	// lands in the Platform's records, attributed to this module and correlated
 	// with the request that caused it. What is worth recording is which of the
 	// fields a screen composes around actually arrived — a detail with no logo is
@@ -57,7 +57,7 @@ func (c *Capability) Metadata(ctx context.Context, req v1.MetadataRequest) (v1.C
 // Role and Photo are left empty, and it is worth being explicit that this is the
 // source's limit rather than a decode that stopped early: Cinemeta carries a
 // cast as names, with no character and no headshot anywhere in its meta shape.
-// That is one of ADR 0034's recorded gaps, and it is what a TMDB-class provider
+// That is one of sdk#3's recorded gaps, and it is what a TMDB-class provider
 // exists to close.
 func castPeople(names []string) []v1.Person {
 	if len(names) == 0 {
@@ -73,7 +73,7 @@ func castPeople(names []string) []v1.Person {
 // episodePreviews maps the episode list onto the SDK's read-only projection. It
 // is deliberately not the materialised tree — Import builds that — but it is
 // what lets a user read a series' episode list before deciding to add it
-// (ADR 0034).
+// (sdk#3).
 func episodePreviews(episodes []Episode) []v1.EpisodePreview {
 	if len(episodes) == 0 {
 		return nil

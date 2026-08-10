@@ -14,7 +14,7 @@
 # dependencies come from the proxy, exactly as a consumer resolves them.
 #
 # It matters more for this module than for an optional one: a core module shares
-# the Platform's dependency graph (ADR 0062), so anything that creeps in here
+# the Platform's dependency graph (platform#3), so anything that creeps in here
 # every other core module has to live with.
 #
 # The tests are hermetic — the fake Cinemeta is an httptest server — so this
