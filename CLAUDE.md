@@ -42,6 +42,12 @@ It is a client of one service — Cinemeta — not of the Stremio addon protocol
   There is deliberately **no `sdui` exemption**: the Stremio module has one
   because it contributes a settings screen (ADR 0038), and this module has no
   settings.
+- **The SDK holds up its end: it names no implementation and depends on nothing**
+  ([ADR 0135](https://github.com/mosaic-media/architecture/blob/main/docs/adr/0135-the-sdk-carries-no-implementation.md)).
+  It says how a module interacts with the Platform; the Platform holds the
+  implementations. So "only the SDK" costs this module nothing transitively, and
+  a gap that could only be closed by the SDK naming a library is a Platform
+  change rather than an SDK bump.
 - **It matters more for a core module than for an optional one.** A core module
   is compiled into the Platform binary and shares its dependency graph
   (ADR 0062), so a dependency added here is one the Platform and every other
