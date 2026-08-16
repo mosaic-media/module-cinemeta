@@ -12,24 +12,23 @@ import (
 //
 // A catalog filter is declared with its permitted values (SDK v0.25.0), and
 // Cinemeta publishes exactly that list in its manifest — an `extra` named
-// `genre` with an `options` array, per catalog and per type. So the options are
-// read from the source rather than written down here, and the reason is the same
-// one that keeps the fake honest: a hardcoded copy of somebody else's vocabulary
-// is wrong the first time they change it, with nothing to report it.
+// `genre` with an `options` array, per catalog and per type. The options are
+// therefore read from the source rather than written down here: a hardcoded copy
+// of somebody else's vocabulary is wrong the first time they change it, with
+// nothing to report it.
 //
-// **This is the one manifest read in this module, and it does not make it a
-// client of the addon protocol.** The catalog *set* stays fixed and curated in
-// Catalogs() — which resources exist, which are usable and what they are called
-// is still decided here rather than negotiated — because half of what Cinemeta
-// declares takes an argument a browse surface addressing a catalog by id cannot
-// supply. What is fetched is one list of values for a control, and nothing about
-// which catalogs there are.
+// This is the one manifest read in this module, and it does not make it a client
+// of the addon protocol. The catalog set stays fixed and curated in Catalogs() —
+// which resources exist, which are usable and what they are called is still
+// decided here rather than negotiated — because half of what Cinemeta declares
+// takes an argument a browse surface addressing a catalog by id cannot supply.
+// What is fetched is one list of values for a control, and nothing about which
+// catalogs there are.
 //
-// Cinemeta's `genre` extra is also the sharpest example of why
-// `CatalogFilter.Label` exists separately from `Name`: on its "New" catalogs,
-// the parameter called `genre` carries a **year**. Those catalogs are not
-// exposed, so the collision never reaches a screen — but it is why a source's
-// parameter name is not fit to be shown to a user.
+// Cinemeta's `genre` extra is also why CatalogFilter.Label exists separately
+// from Name: on its "New" catalogs, the parameter called `genre` carries a year.
+// Those catalogs are not exposed, so the collision never reaches a screen, but
+// it is why a source's parameter name is not fit to be shown to a user.
 
 // filterGenre is the addon-protocol extra this module offers, and its name is
 // the protocol's own — it goes straight back into a catalog path.
@@ -43,9 +42,9 @@ const facetTTL = 24 * time.Hour
 // facetCache holds the genre options per catalog, keyed by type and id.
 //
 // A failed fetch caches nothing and yields no options, so a catalog declares no
-// filter and renders exactly as it did before this existed. That is the correct
-// degradation: an absent control is visibly absent, where a control offering
-// values the source will not honour is not.
+// filter and renders without one. That is the correct degradation: an absent
+// control is visibly absent, where a control offering values the source will not
+// honour is not.
 type facetCache struct {
 	mu      sync.Mutex
 	value   map[string][]v1.CatalogFilterOption

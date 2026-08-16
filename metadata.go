@@ -11,24 +11,24 @@ import (
 // detail screen for both a virtual result and an in-library node, and it is the
 // detail Import draws on (sdk#2, sdk#3).
 //
-// It is the role the required capability class (platform#23) is really about: with
-// no provider filling it, a Mosaic can list what it owns and describe none of
-// it.
+// It is the role the required capability class (platform#23) is really about:
+// with no provider filling it, a Mosaic can list what it owns and describe none
+// of it.
 func (c *Capability) Metadata(ctx context.Context, req v1.MetadataRequest) (v1.ContentMetadata, error) {
 	title, err := c.client.Meta(ctx, req.Ref.NativeType, req.Ref.NativeID)
 	if err != nil {
 		return v1.ContentMetadata{}, fmt.Errorf("fetch Cinemeta metadata: %w", err)
 	}
 
-	// Through the SDK's ambient telemetry rather than a print (sdk#5): this
+	// Through the SDK's ambient telemetry rather than a print (sdk#5), so this
 	// lands in the Platform's records, attributed to this module and correlated
-	// with the request that caused it. What is worth recording is which of the
-	// fields a screen composes around actually arrived — a detail with no logo is
-	// otherwise indistinguishable from a detail whose logo failed to load.
+	// with the request that caused it. What is recorded is which of the fields a
+	// screen composes around actually arrived: a detail with no logo is otherwise
+	// indistinguishable from a detail whose logo failed to load.
 	//
 	// Nothing here is classified. A Cinemeta id and content type are a public
 	// catalogue's own identifiers, and there is no user configuration in the
-	// picture to leak — which is itself a consequence of the module having none.
+	// picture to leak — a consequence of the module having none.
 	v1.TelemetryFrom(ctx).Debug("cinemeta metadata resolved",
 		v1.String("native_type", req.Ref.NativeType),
 		v1.String("native_id", req.Ref.NativeID),
@@ -54,11 +54,10 @@ func (c *Capability) Metadata(ctx context.Context, req v1.MetadataRequest) (v1.C
 
 // castPeople maps billed names onto the SDK's Person.
 //
-// Role and Photo are left empty, and it is worth being explicit that this is the
-// source's limit rather than a decode that stopped early: Cinemeta carries a
-// cast as names, with no character and no headshot anywhere in its meta shape.
-// That is one of sdk#3's recorded gaps, and it is what a TMDB-class provider
-// exists to close.
+// Role and Photo are left empty because Cinemeta carries a cast as names, with
+// no character and no headshot anywhere in its meta shape — the source's limit
+// rather than a decode that stopped early. That is one of sdk#3's recorded gaps,
+// and it is what a TMDB-class provider exists to close.
 func castPeople(names []string) []v1.Person {
 	if len(names) == 0 {
 		return nil

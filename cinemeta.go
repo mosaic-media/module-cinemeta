@@ -20,14 +20,14 @@ import (
 // stops here. Nothing above this file sees a Cinemeta shape.
 //
 // It speaks the Stremio addon protocol, because that is what Cinemeta serves,
-// but it is **not** a client of that protocol: it talks to one known service
-// whose resources and catalogs are fixed. There is no resource to negotiate and
-// no addon list to order, and the one manifest read — the genre options a
-// catalog declares its filter from, in facets.go — decides no catalog's
-// existence, only the values of one control. That is the whole difference
-// between a module that guarantees metadata and one that sources it from
-// whatever a user configured (architecture#3), and it is why the general Stremio
-// addon client is a separate module rather than this one with more options.
+// but it is not a client of that protocol: it talks to one known service whose
+// resources and catalogs are fixed. There is no resource to negotiate and no
+// addon list to order, and the one manifest read — the genre options a catalog
+// declares its filter from, in facets.go — decides no catalog's existence, only
+// the values of one control. That is the difference between a module that
+// guarantees metadata and one that sources it from whatever a user configured
+// (architecture#3), and it is why the general Stremio addon client is a separate
+// module rather than this one with more options.
 
 const (
 	// apiBase is Cinemeta's public endpoint. It is a constant rather than a
@@ -56,16 +56,16 @@ const (
 	requestTimeout = 20 * time.Second
 
 	// maxCast is how many billed names a detail carries. A detail screen shows
-	// the *top* cast, and Cinemeta's links array repeats the same people across
-	// categories.
+	// the top of the bill, and Cinemeta's links array repeats the same people
+	// across categories.
 	maxCast = 18
 )
 
-// userAgent identifies Mosaic to Cinemeta. Sent for a reason rather than for
-// courtesy: the Stremio module found that Cloudflare-fronted addons refuse Go's
-// default "Go-http-client/1.1" with a 403, and the failure reads exactly like
-// the service being down. A var rather than a const because the version half of
-// it is read from the build graph.
+// userAgent identifies Mosaic to Cinemeta. It is sent on every request for a
+// reason rather than for courtesy: Cloudflare-fronted addons refuse Go's default
+// "Go-http-client/1.1" with a 403, and that failure reads exactly like the
+// service being down. A var rather than a const because the version half of it
+// is read from the build graph.
 var userAgent = "mosaic-module-cinemeta/" + moduleVersion
 
 // Client is a Cinemeta API client. It holds only an HTTP client: there is
@@ -89,13 +89,10 @@ func NewClient(httpClient *http.Client) *Client {
 	return &Client{http: httpClient, base: apiBase}
 }
 
-// Meta fetches one title's full record.
-//
-// One request is the whole story here, and it is worth contrasting with a
-// metadata API that splits a record across endpoints: Cinemeta returns the
-// description, artwork, rating, runtime, cast and — for a series — every
-// episode of every season in a single document. That is the one thing this
-// source is unambiguously better at.
+// Meta fetches one title's full record in a single request: Cinemeta returns
+// the description, artwork, rating, runtime, cast and — for a series — every
+// episode of every season in one document, where a metadata API that split the
+// record across endpoints would need several.
 func (c *Client) Meta(ctx context.Context, nativeType, id string) (Title, error) {
 	if nativeType != typeMovie && nativeType != typeSeries {
 		return Title{}, fmt.Errorf("unsupported Cinemeta type %q; expected %q or %q", nativeType, typeMovie, typeSeries)
@@ -112,11 +109,11 @@ func (c *Client) Meta(ctx context.Context, nativeType, id string) (Title, error)
 	}
 	// Cinemeta answers 200 for an id it does not know, so an absent record has to
 	// be detected rather than caught as an error — and it has two shapes. An
-	// unknown series comes back as an empty document; an unknown *film* comes
-	// back as a meta echoing the id and the type with nothing else in it, which
-	// is the one that matters: a record is unusable without a name, and treating
-	// "has an id" as "exists" materialises a Work titled `tt99999999`. The name is
-	// therefore the test. (Only a malformed id gets a 404.)
+	// unknown series comes back as an empty document; an unknown film comes back
+	// as a meta echoing the id and the type with nothing else in it, which is the
+	// one that matters: a record is unusable without a name, and treating "has an
+	// id" as "exists" materialises a Work titled tt99999999. The name is therefore
+	// the test. Only a malformed id gets a 404.
 	if strings.TrimSpace(resp.Meta.Name) == "" {
 		return Title{}, fmt.Errorf("Cinemeta has no %s with id %s", nativeType, id)
 	}
@@ -127,10 +124,10 @@ func (c *Client) Meta(ctx context.Context, nativeType, id string) (Title, error)
 // the union, de-duplicated by id.
 //
 // nativeTypes selects which catalogs are asked — film, television or both. The
-// media-type filter therefore *chooses the endpoint* rather than filtering
-// results afterwards, which is one fewer round trip when a caller has narrowed
-// the query. A type that errors is skipped rather than failing the search: half
-// an answer beats none when the other half is a transient 502.
+// media-type filter therefore chooses the endpoint rather than filtering results
+// afterwards, which is one fewer round trip when a caller has narrowed the
+// query. A type that errors is skipped rather than failing the search: half an
+// answer beats none when the other half is a transient 502.
 func (c *Client) Search(ctx context.Context, text string, nativeTypes []string) ([]Preview, error) {
 	text = strings.TrimSpace(text)
 	if text == "" || len(nativeTypes) == 0 {
@@ -206,13 +203,12 @@ const catalogPage = 100
 // genre narrows the listing when non-empty, as the addon protocol's `genre`
 // extra; the caller has already checked it against what the catalog declared.
 //
-// It reports whether another page exists, and this is the **weaker** of the two
+// It reports whether another page exists, and that is the weaker of the two
 // statements the SDK describes: Cinemeta returns no total, so a full page is all
 // there is to go on. Only the provider can make even that claim, because only
-// the provider knows the page size — and its cost is bounded and visible, a
-// final page of exactly a hundred asking for one more that comes back empty.
-// The alternative is what was here before: paging built, and dead, because
-// nothing ever said there was more.
+// the provider knows the page size, and the cost of being wrong is bounded and
+// visible — a final page of exactly a hundred asks for one more that comes back
+// empty.
 func (c *Client) CatalogItems(ctx context.Context, catalogID, nativeType, genre string, skip int) ([]Preview, bool, error) {
 	decl, ok := c.findCatalog(catalogID, nativeType)
 	if !ok {
@@ -245,8 +241,8 @@ func (c *Client) CatalogItems(ctx context.Context, catalogID, nativeType, genre 
 
 	out := make([]Preview, 0, len(resp.Metas))
 	for _, m := range resp.Metas {
-		// A catalog's entries carry their own type, but the catalog *is* one
-		// type, so the declaration is the authority and a missing field is not a
+		// A catalog's entries carry their own type, but a catalog holds one type
+		// only, so the declaration is the authority and a missing field is not a
 		// special case.
 		out = append(out, m.preview(decl.Type))
 	}

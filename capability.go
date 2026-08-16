@@ -22,16 +22,18 @@ const (
 	// providerScheme is the external-id scheme and source-binding provider this
 	// module keys content under.
 	//
-	// Cinemeta's own identifiers *are* IMDb ids — its manifest declares the "tt"
+	// Cinemeta's own identifiers are IMDb ids — its manifest declares the "tt"
 	// prefix and nothing else — so binding under "imdb" rather than under
 	// "cinemeta" is not a convenience, it is the accurate name for what the id is.
 	// It is also what makes a title added here the same Work as the one a Stremio
 	// addon would have added, instead of a duplicate (platform#18's dedup).
+	// Changing it would silently double a library.
 	providerScheme = "imdb"
 )
 
-// moduleVersion is resolved once from the build graph. A var rather than a const
-// because it is a fact about the binary, discovered at startup, not a literal.
+// moduleVersion is resolved once from the build graph, so it reports the version
+// actually linked. It is a var rather than a const because it is a fact about
+// the binary, discovered at startup, not a literal.
 var moduleVersion = v1.ModuleVersion(modulePath)
 
 // Capability satisfies the SDK's capability contract and every provider role it
@@ -60,11 +62,11 @@ type Capability struct {
 //
 // It takes no settings, and that is the point rather than an omission. Every
 // provider role receives the module's settings document on each invocation
-// (platform#17) and this module ignores it, because a guarantee-clause core module
-// (architecture#3) that can be configured is one that can be misconfigured: there is
-// no key to be missing, no URL to be wrong, and no list a user can empty. The
-// client is therefore built once here rather than per invocation, unlike a
-// module whose configuration can change between two calls.
+// (platform#17) and this module ignores it: a guarantee-clause core module
+// (architecture#3) that can be configured is one that can be misconfigured, so
+// there is no key to be missing, no URL to be wrong, and no list a user can
+// empty. The client is therefore built once here rather than per invocation,
+// unlike a module whose configuration can change between two calls.
 func New(httpClient *http.Client) *Capability {
 	return &Capability{client: NewClient(httpClient)}
 }
@@ -72,9 +74,9 @@ func New(httpClient *http.Client) *Capability {
 // Manifest is the module's self-declaration, including the provider roles it
 // fills (sdk#2).
 //
-// Three roles, and the three it does not declare are as deliberate: no stream
-// and no subtitles, because Cinemeta describes content rather than indexing it;
-// no settings UI, because there is nothing to set.
+// The three roles it does not declare are as deliberate as the three it does:
+// no stream and no subtitles, because Cinemeta describes content rather than
+// indexing it; no settings UI, because there is nothing to set.
 func (c *Capability) Manifest() v1.Manifest {
 	return v1.Manifest{
 		ID:      CapabilityID,
@@ -92,9 +94,9 @@ func (c *Capability) Manifest() v1.Manifest {
 //
 // It creates the Work with its artwork and external id, binds the source, and
 // builds the containment tree: a film as Work → feature item, a series as
-// Work → season container → episode item. It attaches **no Parts**, which is
-// the shape rather than a gap: Cinemeta knows what exists, not where to get it,
-// so an import through this module is a described library that needs a stream
+// Work → season container → episode item. It attaches no Parts, which is the
+// shape rather than a gap: Cinemeta knows what exists, not where to get it, so
+// an import through this module is a described library that needs a stream
 // source installed beside it before anything plays.
 func (c *Capability) Import(ctx context.Context, svc v1.ContentService, req v1.ImportRequest) (v1.ImportResult, error) {
 	caller := req.Caller
@@ -224,8 +226,9 @@ func (c *Capability) importSeries(ctx context.Context, svc v1.ContentService, ca
 	return nil
 }
 
-// find looks for a Work already bound to this IMDb id, returning the root work's
-// id since a match on a child would still mean the tree exists.
+// find looks for a Work already bound to this IMDb id, returning the id of the
+// root work rather than of any node that matched, since the tree exists either
+// way.
 func (c *Capability) find(ctx context.Context, svc v1.ContentService, caller v1.Caller, id string) (v1.NodeID, bool, error) {
 	found, err := svc.FindContentByExternalID(ctx, v1.FindContentByExternalIDQuery{
 		Caller: caller, Scheme: providerScheme, Value: id,
@@ -243,7 +246,7 @@ func (c *Capability) find(ctx context.Context, svc v1.ContentService, caller v1.
 
 // refFrom builds a ContentRef from a preview. Provider is this module, so an
 // import routes back here; the external identity is the IMDb id, which is what
-// makes a result for a title already in the library read as *In library* rather
+// makes a result for a title already in the library read as in-library rather
 // than as new (platform#18).
 func refFrom(p Preview) v1.ContentRef {
 	return v1.ContentRef{

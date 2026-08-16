@@ -9,7 +9,7 @@ import (
 
 // The two discovery roles. They are what produce a ref in the first place: a
 // deployment with only RoleMetadata could describe content it had no way to
-// name, which is why platform#23 makes metadata *and* search one required
+// name, which is why platform#23 makes metadata and search one required
 // capability class rather than two separate ones.
 
 // Search returns virtual candidates for free text (RoleSearch).
@@ -58,7 +58,7 @@ func (c *Capability) Catalogs(ctx context.Context, req v1.CatalogsRequest) (v1.C
 // everything.
 func (c *Capability) CatalogItems(ctx context.Context, req v1.CatalogItemsRequest) (v1.CatalogItemsResponse, error) {
 	// The selection is checked against the same declaration Catalogs handed out.
-	// A filter this module cannot honour is **refused rather than dropped**: the
+	// A filter this module cannot honour is refused rather than dropped: the
 	// addon protocol answers an unknown genre with the unfiltered listing, so
 	// passing one through would return a plausible page for a question nobody
 	// asked — and unlike a missing control, a user cannot see that.

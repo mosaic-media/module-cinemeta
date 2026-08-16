@@ -23,8 +23,8 @@ import (
 // is deliberately not configurable (see New): there is no settings document to
 // point the capability somewhere else, which is the property that makes this a
 // guarantee-clause core module, so a test has to reach past the constructor to
-// redirect it. That is the right trade — the seam exists for tests only and
-// cannot be reached by a deployment.
+// redirect it. The seam exists for tests only and cannot be reached by a
+// deployment.
 
 func newTestCapability(server *httptest.Server) *Capability {
 	return &Capability{client: &Client{http: server.Client(), base: server.URL}}
@@ -270,10 +270,9 @@ func TestMetadataFailsForAnIdCinemetaDoesNotKnow(t *testing.T) {
 	// Cinemeta answers 200 rather than 404 for an id it does not know, in two
 	// different shapes — an unknown film echoes the id back inside an otherwise
 	// bare meta, an unknown series returns no meta at all — so absence has to be
-	// detected rather than caught. This was found against the live service and
-	// not against an earlier version of the fake, which is the whole argument for
-	// checking real sources: "the meta has an id" reads as "the title exists",
-	// and the consequence downstream is a library Work titled `tt99999999`.
+	// detected rather than caught. Both shapes are pinned because reading "the
+	// meta has an id" as "the title exists" passes on one and fails on the other,
+	// and the consequence downstream is a library Work titled tt99999999.
 	for _, ref := range []v1.ContentRef{movieRef("tt99999999"), seriesRef("tt99999999")} {
 		if _, err := capability.Metadata(ctx, v1.MetadataRequest{Caller: caller, Ref: ref}); err == nil {
 			t.Errorf("%s: an unknown id must be an error, not a nameless record", ref.NativeType)
@@ -575,7 +574,7 @@ func fakeCinemeta(modes ...serverMode) *httptest.Server {
 		switch {
 		// The manifest, read for one thing only: the genre options a catalog
 		// declares its filter from. The live document also declares "New"
-		// catalogs whose `genre` extra carries a *year* and is required — the
+		// catalogs whose `genre` extra is required and carries a year — the
 		// reason those catalogs are not exposed at all, and the reason a source's
 		// parameter name is never shown to a user.
 		case path == "/manifest.json":
@@ -701,10 +700,9 @@ func (f *fakeContent) AttachContentPart(_ context.Context, cmd v1.AttachContentP
 	return v1.AttachContentPartResult{Part: p}, nil
 }
 
-// SetContentArtwork records nothing: neither module fills the artwork role, so
-// this exists to satisfy v1.ContentService and would be a lie if it pretended to
-// store something. It was missing because this module sat two SDK releases
-// behind, where the method did not exist yet.
+// SetContentArtwork records nothing: this module fills no artwork role, so the
+// method exists to satisfy v1.ContentService and would be a lie if it pretended
+// to store something.
 func (f *fakeContent) SetContentArtwork(_ context.Context, _ v1.SetContentArtworkCommand) (v1.SetContentArtworkResult, error) {
 	return v1.SetContentArtworkResult{}, nil
 }
@@ -839,9 +837,10 @@ func TestANarrowedCatalogAsksForTheGenre(t *testing.T) {
 	t.Fatalf("no request to %q; paths were %v", want, requestedPaths(server))
 }
 
-// A genre the manifest never declared is refused. The addon protocol answers an
-// unknown genre with the *unfiltered* listing, so passing it through would
-// return a plausible page for a question nobody asked.
+// TestAnUndeclaredGenreIsRefused pins that a narrowing the manifest never
+// declared is refused rather than passed through. The addon protocol answers an
+// unknown genre with the unfiltered listing, so passing it through would return
+// a plausible page for a question nobody asked.
 func TestAnUndeclaredGenreIsRefused(t *testing.T) {
 	server := fakeCinemeta()
 	defer server.Close()
