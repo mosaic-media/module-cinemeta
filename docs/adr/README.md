@@ -6,7 +6,7 @@ A record is cited from another repository as `module-cinemeta#N`, written as a l
 
 | # | Record | Status |
 |---|---|---|
-| 1 | [The guaranteed metadata provider needs no credential](0001-the-guaranteed-metadata-provider-needs-no-credential.md) | Built. |
+| 1 | [The guaranteed metadata provider needs no credential](0001-the-guaranteed-metadata-provider-needs-no-credential.md) | Accepted. Built. |
 
 ## Records this repository depends on
 

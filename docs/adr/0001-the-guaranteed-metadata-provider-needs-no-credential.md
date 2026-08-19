@@ -1,6 +1,6 @@
 # The guaranteed metadata provider needs no credential
 
-**Status:** Built. `module-cinemeta` v0.1.0 is published and registered in the
+**Status:** Accepted. Built. `module-cinemeta` v0.1.0 is published and registered in the
 Platform's composition root, and `module-stremio-addons` v0.20.0 has dropped its
 bundled Cinemeta default. Verified live: a fresh session's home screen renders
 Cinemeta's catalogs and search returns its results with no configuration.
